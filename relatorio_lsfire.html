@@ -221,6 +221,27 @@ canvas.sig{display:block;width:100%;height:130px;touch-action:none;cursor:crossh
 .ibox strong{display:block;margin-bottom:2px}
 
 hr.div{border:none;border-top:1.5px solid var(--bdr);margin:14px 0}
+
+/* ── MODO NFPA 25 ── */
+.nfpa-mode-banner{background:linear-gradient(135deg,#1A6DB5,#0F4C8A);color:#fff;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;margin-bottom:10px;display:none}
+.nfpa-mode-banner.show{display:block}
+.nfpa-grupo-title{font-size:11px;font-weight:700;color:#C04A08;text-transform:uppercase;letter-spacing:.5px;padding:7px 10px;background:#FFF3EE;border-radius:6px;margin:8px 0 5px;border-left:3px solid #E8570A}
+.nfpa-item{border:1.5px solid var(--bdr);border-radius:7px;margin-bottom:5px;overflow:hidden;background:#fff;transition:border-color .15s}
+.nfpa-item.ok-s{border-color:var(--ok-bd);background:var(--ok-bg)}
+.nfpa-item.nao-s{border-color:var(--nok-bd);background:var(--nok-bg)}
+.nfpa-item.na-s{border-color:#ddd;background:#F8F8F8}
+.nfpa-desc{padding:9px 11px;font-size:13.5px;font-weight:500;line-height:1.4;color:var(--tx)}
+.nfpa-num{font-size:10px;color:var(--or);font-weight:700;margin-right:6px}
+.nfpa-btns{display:flex;border-top:1px solid var(--bdr)}
+.nfpa-btn{flex:1;padding:9px 4px;border:none;background:transparent;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;color:#bbb;border-right:1px solid var(--bdr);transition:all .15s}
+.nfpa-btn:last-child{border-right:none}
+.nfpa-btn.ok-b{color:var(--ok);background:var(--ok-bg)}
+.nfpa-btn.nao-b{color:var(--nok);background:var(--nok-bg)}
+.nfpa-btn.na-b{color:#888;background:#F0F0F0}
+.nfpa-obs-wrap{border-top:1px solid var(--bdr);display:none;padding:6px 11px}
+.nfpa-obs-wrap.open{display:block}
+.nfpa-obs{border:none;background:transparent;font-family:'Barlow',sans-serif;font-size:13px;color:var(--tx2);width:100%}
+.nfpa-obs:focus{outline:none}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
@@ -263,14 +284,31 @@ hr.div{border:none;border-top:1.5px solid var(--bdr);margin:14px 0}
       <div class="fg"><label>Telefone</label><input type="tel" id="telefone" placeholder="(00) 00000-0000"/></div>
     </div>
     <div class="fg req"><label>Tipo de Serviço</label>
-      <select id="tipo_srv">
+      <select id="tipo_srv" onchange="onTipoChange()">
         <option value="">Selecione...</option>
         <option>Manutenção Preventiva — 1ª Visita (Startup)</option>
         <option>Manutenção Preventiva</option>
         <option>Manutenção Corretiva</option>
         <option>Inspeção Técnica</option>
         <option>Comissionamento</option>
+        <option value="nfpa25">NFPA 25 ITM — Inspeção, Teste e Manutenção</option>
       </select>
+    </div>
+    <div id="nfpa25-period-wrap" style="display:none">
+      <div class="fg req" style="margin-top:8px">
+        <label>Periodicidade NFPA 25</label>
+        <select id="nfpa25_periodo" onchange="onPeriodoChange()" style="border-color:var(--or);font-weight:600">
+          <option value="">Selecione a periodicidade...</option>
+          <option value="semanal">📅 Semanal — a cada 7 dias</option>
+          <option value="mensal">📆 Mensal — a cada 30 dias</option>
+          <option value="trimestral">🗓️ Trimestral — a cada 90 dias</option>
+          <option value="semestral">📋 Semestral — a cada 180 dias</option>
+          <option value="anual">📊 Anual — a cada 365 dias</option>
+        </select>
+      </div>
+      <div id="nfpa25-info" style="display:none;background:#FFF3EE;border:1.5px solid #FFE4CC;border-radius:8px;padding:10px 12px;font-size:12.5px;color:#C04A08;margin-top:4px">
+        🔬 <strong>Modo NFPA 25 ITM ativo.</strong> Os passos a seguir serão substituídos pelo checklist desta periodicidade.
+      </div>
     </div>
     <div class="row2">
       <div class="fg"><label>Check-in</label><input type="time" id="checkin"/></div>
@@ -519,6 +557,68 @@ hr.div{border:none;border-top:1.5px solid var(--bdr);margin:14px 0}
 </div>
 
 <!-- SUCCESS -->
+
+<!-- ══ CARDS NFPA 25 ITM (aparecem no modo NFPA 25) ══ -->
+<div id="nfpa25-steps-wrap" style="display:none">
+  <!-- NFPA Step 1: Checklist (gerado via JS) -->
+  <div class="card active" data-nfpa-step="1" id="nfpa-card-1">
+    <div class="c-head">🔬 <span id="nfpa-grupo-label">Checklist NFPA 25</span></div>
+    <div class="c-body" id="nfpa-cl-body"></div>
+  </div>
+  <!-- NFPA Step 2: Leituras e Registros -->
+  <div class="card" data-nfpa-step="2" style="display:none" id="nfpa-card-2">
+    <div class="c-head">📊 Leituras e Registros</div>
+    <div class="c-body">
+      <div class="ibox" style="margin-bottom:14px">
+        <strong>Registros de Pressão</strong>
+        Informe as leituras observadas durante os testes.
+      </div>
+      <div class="row2">
+        <div class="fg"><label>Pressão de Sucção (psi)</label><input type="number" id="n25-p-suc" placeholder="0.0" step="0.1" inputmode="decimal"/></div>
+        <div class="fg"><label>Pressão de Descarga (psi)</label><input type="number" id="n25-p-desc" placeholder="0.0" step="0.1" inputmode="decimal"/></div>
+      </div>
+      <div class="row2">
+        <div class="fg"><label>Pressão Inicial da Bomba (psi)</label><input type="number" id="n25-p-ini" placeholder="0.0" step="0.1" inputmode="decimal"/></div>
+        <div class="fg"><label>Pressão Máxima atingida (psi)</label><input type="number" id="n25-p-max" placeholder="0.0" step="0.1" inputmode="decimal"/></div>
+      </div>
+      <div class="row2">
+        <div class="fg"><label>Tempo p/ Partida Diesel (seg)</label><input type="number" id="n25-t-part" placeholder="0" inputmode="numeric"/></div>
+        <div class="fg"><label>Tempo p/ Velocidade Plena (seg)</label><input type="number" id="n25-t-vel" placeholder="0" inputmode="numeric"/></div>
+      </div>
+      <div class="fg"><label>Tensão das Baterias (V)</label><input type="text" id="n25-bat-v" placeholder="Ex: 12.5V / 24V"/></div>
+      <div class="fg"><label>Nível de Combustível (%)</label>
+        <select id="n25-combustivel">
+          <option value="">Selecione...</option>
+          <option>2/3 ou mais (OK)</option>
+          <option>Abaixo de 2/3 (Reabastecer)</option>
+          <option>Não aplicável</option>
+        </select>
+      </div>
+      <div class="fg"><label>Observações de Leituras</label>
+        <textarea id="n25-obs-leit" placeholder="Registre valores específicos, anomalias, variações..."></textarea>
+      </div>
+    </div>
+  </div>
+  <!-- NFPA Step 3: Observações e Conclusão -->
+  <div class="card" data-nfpa-step="3" style="display:none" id="nfpa-card-3">
+    <div class="c-head">📝 Observações e Conclusão</div>
+    <div class="c-body">
+      <div class="fg"><label>Resumo da Inspeção / Recomendações</label>
+        <textarea id="n25-obs" placeholder="Descreva as condições encontradas, recomendações técnicas..."></textarea>
+      </div>
+      <div class="fg"><label>Itens Não Conformes / Pendências</label>
+        <textarea id="n25-pend" placeholder="Liste itens NÃO OK que requerem ação corretiva e prazo..."></textarea>
+      </div>
+      <div class="fg"><label>Contratado</label>
+        <input type="text" id="n25-contrat" value="LS Fire Sistemas de Proteção Contra Incêndio"/>
+      </div>
+      <div style="background:#FFF3EE;border:1px solid #FFE4CC;border-radius:8px;padding:11px;font-size:12px;color:#C04A08;margin-top:8px;line-height:1.5">
+        ⚠️ <strong>Nota NFPA:</strong> O trabalho deve ser concluído na medida em que possa ser realizado sem abrir um controlador de bomba de incêndio acionado por motor elétrico energizado.
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="success" id="success">
   <div class="suc-ico">✅</div>
   <h2>Relatório Gerado!</h2>
@@ -1462,6 +1562,319 @@ function downloadPDF(){
       window.open(uri2, '_blank');
     }
   }
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// NFPA 25 ITM — Modo especial
+// ══════════════════════════════════════════════════════════════
+var _nfpaMode=false, _nfpaPer='', _nfpaItens={};
+var CL_NFPA25_DATA = {"semanal": {"label": "Inspeção Semanal", "grupos": [["Sistema da Bomba", ["Calor na sala das bombas 4°C ou superior", "Grelhas de entrada de ar na sala operacionais", "Sem agua em excesso no chao", "Protecao do acoplamento no lugar", "Valvulas de succao, descarga e desvio abertas", "Sem vazamento de tubulacoes ou mangueiras", "Bomba vazando uma gota por segundo nas vedacoes", "Pressao da linha de succao normal", "Pressao da linha do sistema normal", "Reservatorio de succao cheio", "Telas de succao desobstruidas e no lugar", "Valvulas de teste de fluxo na posicao fechada"]], ["Sistema Eletrico", ["Luz piloto do controlador acesa", "Luz de energia normal do interruptor de transferencia acesa", "Interruptor de isolamento da energia em espera fechado", "Luz de alarme de fase inversa NAO acesa", "Luz de rotacao da fase normal acesa", "Nivel de oleo no visor do motor vertical normal", "Bomba jockey tem energia"]], ["Motor Diesel", ["Tanque de combustivel pelo menos 2/3 cheio", "Interruptor do controlador na posicao AUTO", "Leituras de tensao das baterias normais", "Leituras de carregamento das baterias normais", "Luzes piloto das baterias acesas / falhas apagadas", "Todas as luzes piloto de alarme apagadas", "Nivel de oleo do carter normal", "Nivel da agua de resfriamento normal", "Nivel de eletrolito nas baterias normal", "Terminais da bateria livres de corrosao", "Aquecedor de jaqueta de agua operacional", "Tensao de partida acima do minimo (9V/12V ou 18V/24V)", "Bomba de agua nao esta vazando", "Verificacao de agua no tanque de combustivel"]], ["Testes Operacionais - Bomba", ["Operacao da bomba por 10 min (30 min para diesel)", "Verificacao do aperto da gaxeta (vazamento leve)", "Registro da pressao de succao (psi)", "Registro da pressao de descarga (psi)", "Ajuste dos bucins se necessario", "Verificacao de ruidos ou vibracoes anormais", "Verificacao de superaquecimento em caixas e rolamentos", "Registro da pressao inicial da bomba", "Registro das pressoes mais alta e mais baixa", "Valvula de alivio de circulacao funciona corretamente", "Verificacao dos solenoides do sistema de combustivel", "Verificacao da chave-boia do tanque"]], ["Testes Operacionais - Eletrico", ["Controlador de tempo no primeiro passo", "Tempo para motor acelerar a velocidade maxima", "Registro de tempo de funcionamento apos partida"]], ["Testes Operacionais - Motor Diesel", ["Registro de tempo para motor diesel dar partida", "Registro de tempo para atingir velocidade de operacao", "Verificacao de manometro, velocidade e temperatura", "Verificacao do trocador de calor quanto ao fluxo", "Operacao do regulador de velocidade"]]]}, "mensal": {"label": "ITM Mensal", "grupos": [["Bomba Eletrica - Mensal", ["Teste sem fluxo - operacao por 10 minutos", "Verificacao do aperto da gaxeta", "Registro da pressao de succao (psi)", "Registro da pressao de descarga (psi)", "Ajuste dos bucins se necessario", "Verificacao de ruidos ou vibracoes anormais", "Verificacao de superaquecimento", "Registro da pressao inicial da bomba", "Registro das pressoes mais alta e mais baixa", "Valvula de alivio de circulacao funciona corretamente", "Controlador de tempo no primeiro passo"]], ["Sistema Eletrico - Mensal", ["Funcionamento do interruptor de isolamento e disjuntor", "Disjuntores ou fusíveis inspecionados"]], ["Bateria - Mensal", ["Exterior da caixa limpo e seco", "Gravidade especifica ou estado da carga verificados", "Carregador e taxa de carregamento inspecionados", "Carga equalizada verificada"]]]}, "trimestral": {"label": "ITM Trimestral", "grupos": [["Combustivel", ["Limpeza do filtro ou perna de sujeira"]], ["Lubrificacao", ["Respiro do carter inspecionado / trocado / testado"]], ["Resfriamento", ["Filtro de agua limpo"]], ["Exaustao", ["Isolamento e riscos de incendio inspecionados"]], ["Bateria", ["Terminais limpos e apertados"]], ["Eletrico", ["Atrito de fios sujeitos a movimentos inspecionado"]]]}, "semestral": {"label": "ITM Semestral", "grupos": [["Eletrico", ["Operacao dos meios de partida manual testada"]], ["Resfriamento", ["Nivel de protecao anticongelante verificado"]], ["Exaustao", ["Secao de exaustao flexivel inspecionada"]], ["Seguranca e Alarmes", ["Operacao de seguranca e alarmes testados", "Caixas, paineis e gabinetes limpos"]]]}, "anual": {"label": "ITM Anual", "grupos": [["Bomba Eletrica", ["Interruptor de transferencia de energia", "Verificacao de alinhamento paralelo e angular", "Valvula de alivio principal testada", "Verificacao de mangueiras e conexoes flexiveis", "Verificacao de pecas do encanamento", "Verificacao de folga do eixo da bomba", "Verificacao de precisao dos manometros e sensores", "Alinhamento do acoplamento da bomba"]], ["Transmissao Mecanica", ["Lubrificacao do acoplamento", "Lubrificacao da transmissao de engrenagem em angulo reto"]], ["Eletrico Anual", ["Corrosao nas placas de circuito impresso", "Isolamento de cabos/fios rachado", "Modulo de controle eletronico (ECM) testado", "Anodo de sacrificio mantido", "Disjuntor de disparo testado", "Operacao dos meios de partida manual de emergencia", "Lubrificacao das partes moveis mecanicas", "Calibracao de configuracoes do pressostato", "Lubrificacao dos rolamentos do motor", "Vazamentos nas partes do encanamento", "Sinais de agua em pecas eletricas"]], ["Bomba Diesel", ["Valvula de alivio principal testada"]], ["Combustivel Diesel", ["Combustivel diesel testado", "Sinais de alarme da bomba de combustivel", "Sistema de manutencao de combustivel ativo", "Filtro limpo", "Agua / material estranho no tanque removido", "Aberturas de ventilacao e tubulacao desobstruidas", "Tubulacao de tanque de combustivel inspecionada"]], ["Lubrificacao Diesel", ["Lubrificacao dos rolamentos", "Troca de oleo (maximo 50 horas)", "Filtros de oleo trocados"]], ["Resfriamento Diesel", ["Substituicao do filtro de agua circulante", "Sinal de supervisao para alta temperatura da agua", "Anticongelante verificado", "Trocador de calor inspecionado", "Trabalhos/grelhas do duto inspecionados"]], ["Exaustao Diesel", ["Sistema de exaustao verificado e armadilha drenada", "Verificacao de contrapressao excessiva", "Apoios e suporte em bom estado"]], ["Bateria Diesel", ["Verificacao da gravidade especifica e estado da carga", "Terminais limpos", "Verificacao da tensao da bateria (min 9V/12V ou 18V/24V)"]], ["Eletrico Diesel", ["Corrosao nas placas de circuito impresso", "Modulo de controle eletrico (ECM) testado", "Aperto dos conectores de controle e cabeamento", "Voltimetro e amperimetro para precisao (5%)", "Isolamento de cabos/fios rachado", "Vazamentos nas partes do encanamento", "Sinais de agua em pecas eletricas"]]]}};
+var PER_NAMES={semanal:'Semanal',mensal:'Mensal',trimestral:'Trimestral',semestral:'Semestral',anual:'Anual'};
+
+function onTipoChange(){
+  var sel=document.getElementById('tipo_srv');
+  var wrap=document.getElementById('nfpa25-period-wrap');
+  if(!sel||!wrap)return;
+  if(sel.value==='nfpa25'){
+    wrap.style.display='block';
+  } else {
+    wrap.style.display='none';
+    document.getElementById('nfpa25-info').style.display='none';
+    if(_nfpaMode)sairNFPA25();
+  }
+}
+
+function onPeriodoChange(){
+  var per=document.getElementById('nfpa25_periodo');
+  if(!per||!per.value)return;
+  _nfpaPer=per.value;
+  document.getElementById('nfpa25-info').style.display='block';
+}
+
+function entrarNFPA25(per){
+  _nfpaMode=true; _nfpaPer=per; _nfpaItens={};
+  // Esconder steps normais 2-7
+  for(var s=2;s<=7;s++){
+    var el=document.querySelector('[data-step="'+s+'"]');
+    if(el)el.style.display='none';
+  }
+  // Mostrar wrap NFPA25
+  var w=document.getElementById('nfpa25-steps-wrap');
+  if(w)w.style.display='block';
+  // Montar checklists
+  montarNFPA25(per);
+  // Ajustar TOTAL e NAMES
+  window.__origTOTAL=TOTAL; window.__origNAMES=NAMES.slice();
+  TOTAL=5; // 1=Ident 2=CL-NFPA 3=Leituras 4=Obs 5=Assin
+  NAMES[1]='Checklist '+(PER_NAMES[per]||per);
+  NAMES[2]='Leituras';
+  NAMES[3]='Observações';
+  NAMES[4]='Assinaturas';
+}
+
+function sairNFPA25(){
+  _nfpaMode=false; _nfpaPer='';
+  for(var s=2;s<=7;s++){var el=document.querySelector('[data-step="'+s+'"]');if(el)el.style.display='';}
+  var w=document.getElementById('nfpa25-steps-wrap');if(w)w.style.display='none';
+  if(window.__origTOTAL){TOTAL=window.__origTOTAL;for(var i=0;i<window.__origNAMES.length;i++)NAMES[i]=window.__origNAMES[i];}
+  rfDots();updateNav();
+}
+
+function montarNFPA25(per){
+  var body=document.getElementById('nfpa-cl-body');
+  var lbl=document.getElementById('nfpa-grupo-label');
+  if(!body)return;
+  body.innerHTML='';
+  var dados=CL_NFPA25_DATA[per];
+  if(!dados)return;
+  if(lbl)lbl.textContent=dados.label;
+  var grupos=dados.grupos;
+  for(var gi=0;gi<grupos.length;gi++){
+    var gNome=grupos[gi][0];
+    var itens=grupos[gi][1];
+    var gt=document.createElement('div');
+    gt.className='nfpa-grupo-title';
+    gt.textContent=gNome;
+    body.appendChild(gt);
+    for(var ii=0;ii<itens.length;ii++){
+      var iid=per+'_g'+gi+'_'+ii;
+      _nfpaItens[iid]={status:'',obs:''};
+      var row=document.createElement('div');
+      row.className='nfpa-item';
+      row.id='ni-'+iid;
+      row.innerHTML=
+        '<div class="nfpa-desc"><span class="nfpa-num">'+(ii+1)+'</span>'+itens[ii]+'</div>'+
+        '<div class="nfpa-btns">'+
+        '<button class="nfpa-btn" onclick="nfpaSet(''+iid+'','OK',this)">✔ OK</button>'+
+        '<button class="nfpa-btn" onclick="nfpaSet(''+iid+'','NAO OK',this)">✘ NÃO OK</button>'+
+        '<button class="nfpa-btn" onclick="nfpaSet(''+iid+'','N/A',this)">N/A</button>'+
+        '</div>'+
+        '<div class="nfpa-obs-wrap" id="no-'+iid+'">'+
+        '<input class="nfpa-obs" placeholder="Observação..." oninput="nfpaObs(''+iid+'',this.value)"/>'+
+        '</div>';
+      body.appendChild(row);
+    }
+  }
+}
+
+function nfpaSet(iid,st,btn){
+  if(!_nfpaItens[iid])_nfpaItens[iid]={status:'',obs:''};
+  _nfpaItens[iid].status=st;
+  var row=document.getElementById('ni-'+iid);
+  if(row){
+    row.querySelectorAll('.nfpa-btn').forEach(function(b){b.className='nfpa-btn';});
+    row.className='nfpa-item '+(st==='OK'?'ok-s':st==='NAO OK'?'nao-s':'na-s');
+    btn.className='nfpa-btn '+(st==='OK'?'ok-b':st==='NAO OK'?'nao-b':'na-b');
+    var ow=document.getElementById('no-'+iid);
+    if(ow)ow.className='nfpa-obs-wrap'+(st==='NAO OK'?' open':'');
+  }
+}
+function nfpaObs(iid,val){if(_nfpaItens[iid])_nfpaItens[iid].obs=val;}
+
+// Mostrar card NFPA correto conforme step
+function nfpaShowStep(s){
+  document.querySelectorAll('[data-step]').forEach(function(el){el.classList.remove('active');});
+  document.querySelectorAll('[data-nfpa-step]').forEach(function(el){el.style.display='none';});
+  if(s===1){var c1=document.querySelector('[data-step="1"]');if(c1)c1.classList.add('active');}
+  else if(s===2){var nc=document.getElementById('nfpa-card-1');if(nc)nc.style.display='block';}
+  else if(s===3){var nc2=document.getElementById('nfpa-card-2');if(nc2)nc2.style.display='block';}
+  else if(s===4){var nc3=document.getElementById('nfpa-card-3');if(nc3)nc3.style.display='block';}
+  else if(s===5){var c8=document.querySelector('[data-step="8"]');if(c8)c8.classList.add('active');}
+}
+
+// Monkey-patch next/prev para modo NFPA25
+var __origNext=next, __origPrev=prev;
+next=function(){
+  // Verificar no step 1 se é NFPA25
+  if(step===1){
+    var tipo=document.getElementById('tipo_srv');
+    var per=document.getElementById('nfpa25_periodo');
+    if(tipo&&tipo.value==='nfpa25'){
+      if(!per||!per.value){alert('Selecione a periodicidade NFPA 25.');return;}
+      if(!_nfpaMode||_nfpaPer!==per.value)entrarNFPA25(per.value);
+    } else if(_nfpaMode){sairNFPA25();}
+  }
+  if(!_nfpaMode){__origNext();return;}
+  if(step===TOTAL){genPDF();return;}
+  step++;
+  nfpaShowStep(step);
+  rfDots();updateNav();window.scrollTo({top:0,behavior:'smooth'});
+};
+prev=function(){
+  if(!_nfpaMode){__origPrev();return;}
+  if(step<2)return;
+  step--;
+  nfpaShowStep(step);
+  rfDots();updateNav();window.scrollTo({top:0,behavior:'smooth'});
+};
+
+// Override genPDF para modo NFPA25
+var __origGenPDF=genPDF;
+genPDF=function(){
+  if(!_nfpaMode){__origGenPDF();return;}
+  var btn=document.getElementById('nav-next');
+  btn.textContent='⏳ Gerando...';btn.disabled=true;
+  setTimeout(function(){try{_nfpaBuildPDF();}catch(e){btn.textContent='📄 Gerar PDF';btn.disabled=false;alert('Erro: '+e.message);}},250);
+};
+
+function _nfpaBuildPDF(){
+  if(!window.jspdf)throw new Error('jsPDF não carregado');
+  var jsPDF=window.jspdf.jsPDF;
+  var doc=new jsPDF('p','mm','a4');
+  var PW=210,PH=297,M=14,CW=182;
+  var OR=[232,87,10],GR=[30,30,30],LG=[244,244,244],MG=[210,210,210];
+  var pg=0;
+  function gv2(id){var e=document.getElementById(id);return e?e.value||'':'';}
+  function addHdr2(){
+    pg++;
+    doc.setFillColor(30,30,30);doc.rect(0,0,PW,26,'F');
+    doc.setFillColor(232,87,10);doc.rect(0,26,PW,1.5,'F');
+    doc.setFillColor(255,255,255);doc.roundedRect(8,2.5,58,22,2,2,'F');
+    try{doc.addImage(LOGO_B64,'PNG',9,3,56,20,'','FAST');}catch(e){}
+    doc.setTextColor(255,255,255);
+    doc.setFont('helvetica','bold');doc.setFontSize(12);
+    doc.text('ITM NFPA 25 - '+(PER_NAMES[_nfpaPer]||_nfpaPer).toUpperCase(),PW/2+15,11,{align:'center'});
+    doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(190,190,190);
+    doc.text('Inspecao, Teste e Manutencao — LS Fire',PW/2+15,18,{align:'center'});
+    doc.setFillColor(30,30,30);doc.rect(0,PH-11,PW,11,'F');
+    doc.setFillColor(232,87,10);doc.rect(0,PH-11,PW,1.2,'F');
+    doc.setTextColor(180,180,180);doc.setFont('helvetica','normal');doc.setFontSize(6.5);
+    doc.text('LS Fire - ITM NFPA 25 | Pag. '+pg,PW/2,PH-4,{align:'center'});
+  }
+  function np2(){doc.addPage();addHdr2();return 32;}
+  function ck2(y,n){return(y+(n||12))>(PH-16)?np2():y;}
+  function ir2(lb,vl,y,lw){
+    lw=lw||62;var vw=CW-lw,rh=7;
+    doc.setFillColor(244,244,244);doc.rect(M,y,lw,rh,'F');
+    doc.setFillColor(255,255,255);doc.rect(M+lw,y,vw,rh,'F');
+    doc.setDrawColor(210,210,210);doc.setLineWidth(0.3);
+    doc.rect(M,y,lw,rh,'S');doc.rect(M+lw,y,vw,rh,'S');
+    doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(26,26,26);
+    doc.text(String(lb),M+2,y+4.8);
+    doc.setFont('helvetica','normal');doc.text(String(vl||'-').slice(0,55),M+lw+2,y+4.8);
+    return y+rh;
+  }
+  function sH2(t,y){
+    doc.setFillColor(30,30,30);doc.rect(M,y,CW,8,'F');
+    doc.setFillColor(232,87,10);doc.rect(M,y,3.5,8,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(255,255,255);
+    doc.text(t,M+7,y+5.5);return y+10;
+  }
+  function clH2(y){
+    var sw=22,ow=50,dw=CW-sw-ow;
+    doc.setFillColor(44,62,80);doc.rect(M,y,CW,7,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(255,255,255);
+    doc.text('Item',M+2,y+4.8);doc.text('Status',M+dw+sw/2,y+4.8,{align:'center'});doc.text('Observacao',M+dw+sw+2,y+4.8);
+    return y+7;
+  }
+  function clR2(n,desc,st,obs,y){
+    var sw=22,ow=50,dw=CW-sw-ow,rh=8;
+    var sc=st==='OK'?[30,132,73]:st==='NAO OK'?[192,57,43]:[110,110,110];
+    var bg=st==='OK'?[234,250,241]:st==='NAO OK'?[253,237,236]:[248,248,248];
+    doc.setFillColor(bg[0],bg[1],bg[2]);doc.rect(M,y,CW,rh,'F');
+    doc.setDrawColor(210,210,210);doc.setLineWidth(0.3);
+    doc.rect(M,y,dw,rh,'S');doc.rect(M+dw,y,sw,rh,'S');doc.rect(M+dw+sw,y,ow,rh,'S');
+    doc.setFont('helvetica','normal');doc.setFontSize(6.8);doc.setTextColor(26,26,26);
+    doc.text(n+'. '+doc.splitTextToSize(desc,dw-8)[0],M+2,y+5);
+    doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(sc[0],sc[1],sc[2]);
+    doc.text(st||'-',M+dw+sw/2,y+5,{align:'center'});
+    doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(130,130,130);
+    if(obs)doc.text(doc.splitTextToSize(obs,ow-3)[0],M+dw+sw+2,y+5);
+    return y+rh;
+  }
+
+  addHdr2();var y=32;
+  y=sH2('1. DADOS DA INSPECAO',y);
+  y=ir2('OS No.',gv2('os_num'),y);y=ir2('Data',gv2('data_exec'),y);
+  y=ir2('Periodicidade',(PER_NAMES[_nfpaPer]||_nfpaPer).toUpperCase(),y);
+  y=ir2('Cliente',gv2('cliente'),y);y=ir2('CNPJ',gv2('cnpj'),y);
+  y=ir2('Endereco',gv2('endereco'),y);y=ir2('Contato',gv2('contato'),y);
+  y=ir2('Telefone',gv2('telefone'),y);y=ir2('Tecnico',gv2('tecnico'),y);
+  y=ir2('CREA',gv2('crea'),y);y=ir2('Local / Tag',gv2('local'),y);
+  y+=5;
+
+  var tsim=0,tnao=0,tna=0;
+  var ks=Object.keys(_nfpaItens);
+  for(var ki=0;ki<ks.length;ki++){var it=_nfpaItens[ks[ki]];if(it.status==='OK')tsim++;else if(it.status==='NAO OK')tnao++;else if(it.status==='N/A')tna++;}
+  var cf=(tsim+tnao)>0?Math.round(tsim/(tsim+tnao)*100):0;
+
+  y=ck2(y,18);
+  var bw=CW/4;
+  var res=[['OK',tsim,[234,250,241],[30,132,73]],['NAO OK',tnao,[253,237,236],[192,57,43]],['N/A',tna,[248,248,248],[110,110,110]],['CONFORM.',cf+'%',[255,243,238],[232,87,10]]];
+  for(var ri=0;ri<res.length;ri++){
+    var bx=M+ri*bw;
+    doc.setFillColor(res[ri][2][0],res[ri][2][1],res[ri][2][2]);doc.rect(bx,y,bw,14,'F');
+    doc.setDrawColor(210,210,210);doc.rect(bx,y,bw,14,'S');
+    doc.setFont('helvetica','bold');doc.setFontSize(15);doc.setTextColor(res[ri][3][0],res[ri][3][1],res[ri][3][2]);
+    doc.text(String(res[ri][1]),bx+bw/2,y+9,{align:'center'});
+    doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(130,130,130);
+    doc.text(res[ri][0],bx+bw/2,y+13,{align:'center'});
+  }
+  y+=17;
+
+  // Leituras
+  var ps=gv2('n25-p-suc'),pd=gv2('n25-p-desc'),pi=gv2('n25-p-ini'),pm=gv2('n25-p-max');
+  var tp=gv2('n25-t-part'),tv=gv2('n25-t-vel'),bv=gv2('n25-bat-v'),co=gv2('n25-combustivel');
+  if(ps||pd||pi||pm||tp||tv||bv||co){
+    y=ck2(y,35);y=sH2('2. LEITURAS E REGISTROS',y);
+    if(ps)y=ir2('Pressao Succao',ps+' psi',y);if(pd)y=ir2('Pressao Descarga',pd+' psi',y);
+    if(pi)y=ir2('Pressao Inicial',pi+' psi',y);if(pm)y=ir2('Pressao Maxima',pm+' psi',y);
+    if(tp)y=ir2('Tempo Partida Diesel',tp+' seg',y);if(tv)y=ir2('Tempo Vel. Plena',tv+' seg',y);
+    if(bv)y=ir2('Tensao Baterias',bv,y);if(co)y=ir2('Nivel Combustivel',co,y);
+    y+=4;
+  }
+
+  // Checklists
+  var dados=CL_NFPA25_DATA[_nfpaPer];
+  if(dados){
+    var grupos=dados.grupos;
+    for(var gi=0;gi<grupos.length;gi++){
+      y=np2();y=sH2(grupos[gi][0].toUpperCase(),y);y=clH2(y);
+      var itens=grupos[gi][1];
+      for(var ii=0;ii<itens.length;ii++){
+        y=ck2(y,10);
+        var iid=_nfpaPer+'_g'+gi+'_'+ii;
+        var itv=_nfpaItens[iid]||{status:'',obs:''};
+        y=clR2(ii+1,itens[ii],itv.status||'',itv.obs||'',y);
+      }
+      y+=4;
+    }
+  }
+
+  // Obs
+  var obs=gv2('n25-obs'),pend=gv2('n25-pend');
+  y=np2();y=sH2('3. OBSERVACOES E ASSINATURAS',y);
+  if(obs){y+=4;doc.setFillColor(244,244,244);doc.roundedRect(M,y,CW,28,2,2,'F');doc.setDrawColor(210,210,210);doc.roundedRect(M,y,CW,28,2,2,'S');doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(130,130,130);doc.text('OBSERVACOES',M+3,y+5);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(26,26,26);doc.text(doc.splitTextToSize(obs,CW-6).slice(0,5),M+3,y+11);y+=31;}
+  if(pend){y=ck2(y,25);doc.setFillColor(253,237,236);doc.roundedRect(M,y,CW,22,2,2,'F');doc.setDrawColor(241,148,138);doc.roundedRect(M,y,CW,22,2,2,'S');doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(192,57,43);doc.text('PENDENCIAS E NAO CONFORMIDADES',M+3,y+5);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(26,26,26);doc.text(doc.splitTextToSize(pend,CW-6).slice(0,3),M+3,y+11);y+=25;}
+
+  // Assinaturas
+  y=ck2(y,55);y+=6;
+  var sw2=(CW-8)/2;
+  doc.setFillColor(44,62,80);doc.rect(M,y,sw2,8,'F');doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(255,255,255);doc.text('Inspetor / Tecnico',M+sw2/2,y+5,{align:'center'});
+  doc.setFillColor(255,255,255);doc.setDrawColor(210,210,210);doc.rect(M,y+8,sw2,34,'FD');doc.setDrawColor(180,180,180);doc.line(M+5,y+40,M+sw2-5,y+40);
+  doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(130,130,130);
+  doc.text(gv2('tecnico')||'__________',M+sw2/2,y+44,{align:'center'});doc.text('CREA: '+gv2('crea')+'  Data: '+gv2('data_exec'),M+sw2/2,y+48,{align:'center'});
+  var cx2=M+sw2+8;
+  doc.setFillColor(44,62,80);doc.rect(cx2,y,sw2,8,'F');doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(255,255,255);doc.text('Responsavel pela Propriedade',cx2+sw2/2,y+5,{align:'center'});
+  doc.setFillColor(255,255,255);doc.setDrawColor(210,210,210);doc.rect(cx2,y+8,sw2,34,'FD');doc.setDrawColor(180,180,180);doc.line(cx2+5,y+40,cx2+sw2-5,y+40);
+  doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(130,130,130);
+  doc.text(gv2('contato')||'__________',cx2+sw2/2,y+44,{align:'center'});doc.text('Data: '+gv2('data_exec'),cx2+sw2/2,y+48,{align:'center'});
+
+  var os=gv2('os_num')||'SN';
+  var cli=(gv2('cliente')||'cli').replace(/[^a-zA-Z0-9]/g,'_').slice(0,14);
+  _pdfName='LS_Fire_NFPA25_'+(_nfpaPer||'').toUpperCase()+'_OS'+os+'_'+cli+'.pdf';
+  _pdfDoc=doc;
+
+  // Enviar ao Supabase
+  enviarOS();
+
+  // Sucesso
+  document.querySelectorAll('.card').forEach(function(card){card.style.display='none';});
+  document.getElementById('nfpa25-steps-wrap').style.display='none';
+  document.getElementById('nav').style.display='none';
+  document.getElementById('success').classList.add('show');
+  setTimeout(function(){downloadPDF();},300);
 }
 
 </script>

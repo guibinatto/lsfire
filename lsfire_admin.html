@@ -219,6 +219,10 @@ hr.dv{border:none;border-top:1.5px solid var(--bdr);margin:13px 0}
     <div class="sb-sec">Cadastros</div>
     <div class="sb-item" onclick="nav('clientes')"><span class="ic">🏢</span>Clientes</div>
     <div class="sb-item" onclick="nav('tecnicos')"><span class="ic">👷</span>Técnicos</div>
+    <div class="sb-sec">NFPA 25 — ITM</div>
+    <div class="sb-item" onclick="nav('nfpa25')"><span class="ic">🔥</span>Controle ITM NFPA 25</div>
+    <div class="sb-sec">NFPA 25 ITM</div>
+    <div class="sb-item" onclick="nav('nfpa25')"><span class="ic">🔬</span>Controle ITM <span class="sb-badge" id="sb-nfpa-alert">0</span></div>
     <div class="sb-sec">Análise</div>
     <div class="sb-item" onclick="nav('indicadores')"><span class="ic">📈</span>Indicadores</div>
     <div class="sb-item" onclick="nav('config')"><span class="ic">⚙️</span>Configurações</div>
@@ -371,6 +375,54 @@ hr.dv{border:none;border-top:1.5px solid var(--bdr);margin:13px 0}
   </div>
 </div>
 
+
+<!-- ══ NFPA 25 ITM ══ -->
+<div class="page" id="page-nfpa25">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+    <div>
+      <h2 style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:var(--gr)">🔥 Controle ITM — NFPA 25</h2>
+      <div style="font-size:13px;color:var(--tx3);margin-top:2px">Inspeção, Teste e Manutenção com controle de periodicidade e alertas automáticos</div>
+    </div>
+    <a href="relatorio_nfpa25.html" target="_blank" rel="noopener" class="btn btn-primary">📋 Nova Inspeção NFPA 25</a>
+  </div>
+
+  <!-- Alertas de Vencimento -->
+  <div id="nfpa-alerts" style="margin-bottom:16px"></div>
+
+  <!-- Filtro de cliente -->
+  <div class="fb" style="margin-bottom:14px">
+    <div class="sb2"><span>🔍</span><input type="text" id="nfpa-q" placeholder="Buscar cliente..." oninput="renderNFPA25()"/></div>
+    <select class="fsel" id="nfpa-fper" onchange="renderNFPA25()">
+      <option value="">Todas as periodicidades</option>
+      <option value="semanal">Semanal</option>
+      <option value="mensal">Mensal</option>
+      <option value="trimestral">Trimestral</option>
+      <option value="semestral">Semestral</option>
+      <option value="anual">Anual</option>
+    </select>
+    <select class="fsel" id="nfpa-fstatus" onchange="renderNFPA25()">
+      <option value="">Todos os status</option>
+      <option value="ok">Em dia</option>
+      <option value="warn">Próximo do vencimento</option>
+      <option value="over">Vencido</option>
+    </select>
+  </div>
+
+  <!-- Cards por Cliente -->
+  <div id="nfpa-cards"></div>
+
+  <!-- Histórico de Inspeções NFPA 25 -->
+  <div class="card" style="margin-top:14px">
+    <div class="ch"><span class="ct">Histórico de Inspeções ITM</span><span class="badge b-gray" id="nfpa-hist-cnt">0</span></div>
+    <div class="tbl-w">
+      <table class="dt">
+        <thead><tr><th>Data</th><th>Cliente</th><th>Período</th><th>Técnico</th><th>SIM</th><th>NÃO OK</th><th>Conform.</th><th></th></tr></thead>
+        <tbody id="nfpa-hist-tb"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 </div><!-- /main -->
 <!-- ══ MODAIS ══ -->
 
@@ -424,10 +476,24 @@ hr.dv{border:none;border-top:1.5px solid var(--bdr);margin:13px 0}
     </select></div></div>
     <div class="fg"><label>Cliente *</label><select id="mag-cli"><option value="">Selecione...</option></select></div>
     <div class="fg"><label>Técnico Responsável *</label><select id="mag-tec"><option value="">Selecione...</option></select></div>
-    <div class="fg"><label>Tipo de Serviço</label><select id="mag-tipo">
-      <option>Manutenção Preventiva</option><option>Manutenção Preventiva — 1ª Visita</option>
-      <option>Manutenção Corretiva</option><option>Inspeção Técnica</option><option>Startup / Comissionamento</option>
+    <div class="fg"><label>Tipo de Serviço</label><select id="mag-tipo" onchange="toggleNFPA25Period()">
+      <option>Manutenção Preventiva</option>
+      <option>Manutenção Preventiva — 1ª Visita</option>
+      <option>Manutenção Corretiva</option>
+      <option>Inspeção Técnica</option>
+      <option>Startup / Comissionamento</option>
+      <option value="nfpa25">NFPA 25 ITM — Inspeção, Teste e Manutenção</option>
     </select></div>
+    <div class="fg" id="mag-period-wrap" style="display:none">
+      <label>Periodicidade NFPA 25</label>
+      <select id="mag-period">
+        <option value="semanal">📅 Semanal (a cada 7 dias)</option>
+        <option value="mensal">📆 Mensal (a cada 30 dias)</option>
+        <option value="trimestral">🗓️ Trimestral (a cada 90 dias)</option>
+        <option value="semestral">📋 Semestral (a cada 180 dias)</option>
+        <option value="anual">📊 Anual (a cada 365 dias)</option>
+      </select>
+    </div>
     <div class="r2"><div class="fg"><label>Local / Tag</label><input type="text" id="mag-local" placeholder="Ex: Casa de Bombas G-100"/></div>
     <div class="fg"><label>Duração Estimada</label><select id="mag-dur">
       <option value="4">Meio período (4h)</option><option value="8" selected>Dia inteiro (8h)</option>
@@ -534,7 +600,7 @@ async function syncAll(){
     if(clis&&clis.length)DB.clientes=clis.map(c=>({id:c.id,nome:c.nome,cnpj:c.cnpj,contato:c.contato,telefone:c.telefone,email:c.email,endereco:c.endereco,obs:c.obs,norma:c.norma,ativo:c.ativo!==false}));
     if(tecs&&tecs.length)DB.tecnicos=tecs.map(t=>({id:t.id,nome:t.nome,crea:t.crea,telefone:t.telefone,email:t.email,especialidade:t.especialidade,ativo:t.ativo!==false}));
     if(oss&&oss.length)DB.os=oss.map(o=>({id:o.id,numero:o.numero||'—',clienteId:o.cliente_id||'',tecnicoId:o.tecnico_id||'',clienteNome:o.cliente_nome||'',tecnicoNome:o.tecnico_nome||'',tipo:o.tipo||'',data:o.data||'',local:o.local_exec||'',norma:o.norma||'',cert:o.certificacao||'',status:o.status||'concluido',checkin:o.checkin||'',checkout:o.checkout||'',ok:o.total_ok||0,nok:o.total_nok||0,na:o.total_na||0,observacoes:o.observacoes||'',materiais:o.materiais||'',pendencias:o.pendencias||'',checklist:o.checklist_json||null,hist:o.historico_edicoes||[],criado_em:o.criado_em||''}));
-    if(ags&&ags.length)DB.agendamentos=ags.map(a=>({id:a.id,clienteId:a.cliente_id||'',tecnicoId:a.tecnico_id||'',clienteNome:a.cliente_nome||'',tecnicoNome:a.tecnico_nome||'',tipo:a.tipo||'',data:a.data||'',hora:a.hora||'08:00',local:a.local||'',duracao:a.duracao||8,obs:a.obs||'',status:a.status||'agendado'}));
+    if(ags&&ags.length)DB.agendamentos=ags.map(a=>({id:a.id,clienteId:a.cliente_id||'',tecnicoId:a.tecnico_id||'',clienteNome:a.cliente_nome||'',tecnicoNome:a.tecnico_nome||'',tipo:a.tipo||'',data:a.data||'',hora:a.hora||'08:00',local:a.local||'',duracao:a.duracao||8,obs:a.obs||'',status:a.status||'agendado',nfpa25_periodo:a.nfpa25_periodo||''}));
     saveDB();renderPage(currentPage);showSync(true);
     const ag=DB.agendamentos.filter(a=>a.status==='agendado'&&daysAgo(a.data)<=7&&daysAgo(a.data)>=0).length;
     const el=document.getElementById('sb-ag');if(el)el.textContent=ag;
@@ -686,7 +752,7 @@ function closeSb(){document.getElementById('sidebar').classList.remove('open');d
 // ══════════════════════════════════════════════════════
 // NAVEGAÇÃO
 // ══════════════════════════════════════════════════════
-const PAGE_TITLES={dashboard:'Dashboard',agenda:'Agenda',os:'Ordens de Serviço',clientes:'Clientes',tecnicos:'Técnicos',indicadores:'Indicadores',config:'Configurações'};
+const PAGE_TITLES={nfpa25:'NFPA 25 — ITM',dashboard:'Dashboard',agenda:'Agenda',os:'Ordens de Serviço',clientes:'Clientes',tecnicos:'Técnicos',indicadores:'Indicadores',config:'Configurações'};
 let currentPage='dashboard';
 function nav(page){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -705,6 +771,8 @@ function renderPage(p){
   else if(p==='clientes')renderClientes();
   else if(p==='tecnicos')renderTecnicos();
   else if(p==='indicadores')renderIndicadores();
+  else if(p==='nfpa25'){syncNFPA25();renderNFPA25();}
+  else if(p==='nfpa25'){syncNFPA25();renderNFPA25();}
 }
 
 // ══════════════════════════════════════════════════════
@@ -735,7 +803,7 @@ function renderDashboard(){
         </div>
         <div style="flex:1;min-width:0">
           <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cliNome(a.clienteId)}</div>
-          <div style="font-size:12px;color:var(--tx3)">${a.hora} · ${tecNome(a.tecnicoId).split(' ')[0]} · ${a.tipo.slice(0,28)}</div>
+          <div style="font-size:12px;color:var(--tx3)">${a.hora} · ${tecNome(a.tecnicoId).split(' ')[0]} · ${a.nfpa25_periodo?'🔬 ':''}${a.tipo.slice(0,26)}</div>
         </div>
         <button class="btn btn-outline btn-xs" onclick="editAgend('${a.id}')">✏</button>
       </div>`).join('')
@@ -825,6 +893,7 @@ function selectDay(ds){
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
         <div><span style="font-size:15px;font-weight:700">${a.hora}</span><span style="margin-left:7px">${stBadge(a.status)}</span></div>
         <button class="btn btn-outline btn-xs" onclick="editAgend('${a.id}')">✏ Editar</button>
+        ${a.nfpa25_periodo?`<a href="relatorio_nfpa25.html" target="_blank" rel="noopener" class="btn btn-blue btn-xs" style="text-decoration:none;margin-left:4px">🔬 Abrir ITM</a>`:''}
       </div>
       <div style="font-size:13.5px;font-weight:600;margin-bottom:3px">${cliNome(a.clienteId)}</div>
       <div style="font-size:12.5px;color:var(--tx2);margin-bottom:2px">👷 ${tecNome(a.tecnicoId)} · ${a.tipo}</div>
@@ -852,6 +921,13 @@ function renderAgByTec(){
   }).join('')||'<div class="empty"><p>Nenhum técnico ativo</p></div>';
 }
 
+
+function toggleNFPA25Period() {
+  var tipo = gv('mag-tipo');
+  var wrap = document.getElementById('mag-period-wrap');
+  if (wrap) wrap.style.display = tipo === 'nfpa25' ? 'block' : 'none';
+}
+
 function openModalAgend(){
   document.getElementById('mag-t').textContent='Novo Agendamento';
   document.getElementById('mag-id').value='';
@@ -861,6 +937,8 @@ function openModalAgend(){
   document.getElementById('mag-obs').value='';
   document.getElementById('mag-local').value='';
   document.getElementById('mag-del').style.display='none';
+  var pw=document.getElementById('mag-period-wrap');if(pw)pw.style.display='none';
+  var ms=document.getElementById('mag-tipo');if(ms)ms.value='Manutenção Preventiva';
   populateAgendSelects();openModal('agend');
 }
 
@@ -878,6 +956,7 @@ function editAgend(id){
   document.getElementById('mag-dur').value=a.duracao||8;
   document.getElementById('mag-obs').value=a.obs||'';
   document.getElementById('mag-status').value=a.status;
+  if(a.nfpa25_periodo){var pw2=document.getElementById('mag-period-wrap');if(pw2)pw2.style.display='block';var mp=document.getElementById('mag-period');if(mp)mp.value=a.nfpa25_periodo;var ms2=document.getElementById('mag-tipo');if(ms2)ms2.value='nfpa25';}
   document.getElementById('mag-del').style.display='block';
   openModal('agend');
 }
@@ -889,7 +968,8 @@ async function saveAgend(){
   const cli=DB.clientes.find(c=>c.id===cliId);
   const tec=DB.tecnicos.find(t=>t.id===tecId);
   const isNovo=!id;
-  const ag={cliente_id:cliId,tecnico_id:tecId,cliente_nome:cli?cli.nome:'',tecnico_nome:tec?tec.nome:'',tipo:gv('mag-tipo'),data:data,hora:gv('mag-hora'),local:gv('mag-local'),duracao:parseInt(gv('mag-dur'))||8,obs:gv('mag-obs'),status:gv('mag-status')};
+  var tipoVal=gv('mag-tipo');var periodVal=tipoVal==='nfpa25'?gv('mag-period'):'';var tipoLabel=tipoVal==='nfpa25'?'NFPA 25 ITM — '+({'semanal':'Semanal','mensal':'Mensal','trimestral':'Trimestral','semestral':'Semestral','anual':'Anual'}[periodVal]||periodVal):tipoVal;
+  const ag={cliente_id:cliId,tecnico_id:tecId,cliente_nome:cli?cli.nome:'',tecnico_nome:tec?tec.nome:'',tipo:tipoLabel,nfpa25_periodo:periodVal,data:data,hora:gv('mag-hora'),local:gv('mag-local'),duracao:parseInt(gv('mag-dur'))||8,obs:gv('mag-obs'),status:gv('mag-status')};
   try{
     if(id){
       await sbPatch('agendamentos','id=eq.'+id,ag).catch(()=>{});
@@ -1364,6 +1444,148 @@ function verDashTec(tecId){
   },100);
 }
 
+
+// ══════════════════════════════════════════════════════
+// NFPA 25 — Controle de Periodicidade
+// ══════════════════════════════════════════════════════
+var _nfpaControles = [];
+var NFPA_DIAS = {semanal:7, mensal:30, trimestral:90, semestral:180, anual:365};
+var NFPA_LABELS = {semanal:'Semanal', mensal:'Mensal', trimestral:'Trimestral', semestral:'Semestral', anual:'Anual'};
+
+async function syncNFPA25() {
+  try {
+    var dados = await sbGet('itm_controles', 'select=*');
+    _nfpaControles = dados || [];
+    renderNFPA25();
+    renderNFPAAlerts();
+    // Atualizar badge da sidebar
+    var venc = contarVencidos();
+    var el = document.getElementById('sb-nfpa-alert');
+    if(el) el.textContent = venc > 0 ? venc : '✓';
+    if(el) el.style.background = venc > 0 ? 'var(--nok)' : 'var(--ok)';
+  } catch(e) {
+    console.warn('NFPA25 sync falhou:', e.message);
+  }
+}
+
+function contarVencidos() {
+  var hoje = new Date().toISOString().slice(0,10);
+  return _nfpaControles.filter(c => c.proximo_data && c.proximo_data < hoje).length;
+}
+
+function statusPeriodo(cliId, periodo) {
+  var ctrl = _nfpaControles.find(c => c.cliente_id === cliId && c.periodo === periodo);
+  var hoje = new Date();
+  if(!ctrl || !ctrl.ultima_data) return {status:'nunca', label:'Nunca feito', class:'b-gray', dias: null};
+  var prox = new Date(ctrl.proximo_data + 'T12:00:00');
+  var dr = Math.round((prox - hoje) / 86400000);
+  if(dr < 0)   return {status:'vencido',  label:'Vencida '    + Math.abs(dr) + 'd', class:'b-nok',  dias: dr, data: ctrl.ultima_data};
+  if(dr === 0) return {status:'vencido',  label:'Vence hoje!', class:'b-nok',  dias: 0,  data: ctrl.ultima_data};
+  if(dr <= 7)  return {status:'proximo',  label: dr + 'd',     class:'b-warn', dias: dr, data: ctrl.ultima_data};
+  return {status:'em_dia', label: prox.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}), class:'b-ok', dias: dr, data: ctrl.ultima_data};
+}
+
+function renderNFPAAlerts() {
+  var hoje = new Date().toISOString().slice(0,10);
+  var vencidos = _nfpaControles.filter(c => c.proximo_data && c.proximo_data < hoje);
+  var proximos = _nfpaControles.filter(c => {
+    if(!c.proximo_data) return false;
+    var dr = Math.round((new Date(c.proximo_data+'T12:00:00') - new Date()) / 86400000);
+    return dr >= 0 && dr <= 7;
+  });
+  var nunca = [];
+  DB.clientes.filter(c=>c.ativo).forEach(cli => {
+    Object.keys(NFPA_DIAS).forEach(per => {
+      var ctrl = _nfpaControles.find(c => c.cliente_id === cli.id && c.periodo === per);
+      if(!ctrl) nunca.push({cliente: cli.nome, periodo: per});
+    });
+  });
+
+  var alertas = document.getElementById('nfpa-alertas');
+  if(!vencidos.length && !proximos.length && nunca.length === 0) {
+    alertas.innerHTML = '<div class="empty"><div class="empty-i">✅</div><p>Todos os controles em dia!</p></div>';
+    return;
+  }
+
+  var html = '';
+
+  if(vencidos.length) {
+    html += '<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:700;color:var(--nok);text-transform:uppercase;letter-spacing:.4px;margin-bottom:7px">🔴 Vencidas (' + vencidos.length + ')</div>';
+    html += vencidos.slice(0,5).map(c => {
+      var dr = Math.round((new Date() - new Date(c.proximo_data+'T12:00:00')) / 86400000);
+      return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--bdr)">'
+        + '<span class="badge b-nok" style="flex-shrink:0">' + NFPA_LABELS[c.periodo] + '</span>'
+        + '<span style="font-size:13px;flex:1">' + (c.cliente_nome||'—') + '</span>'
+        + '<span style="font-size:12px;color:var(--nok);font-weight:700">Vencida há ' + dr + ' dias</span>'
+        + '<a href="relatorio_nfpa25.html" target="_blank" rel="noopener" class="btn btn-danger btn-xs">Inspecionar</a>'
+        + '</div>';
+    }).join('');
+    if(vencidos.length > 5) html += '<div style="font-size:12px;color:var(--tx3);padding-top:6px">...e mais ' + (vencidos.length-5) + ' vencidas</div>';
+    html += '</div>';
+  }
+
+  if(proximos.length) {
+    html += '<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:700;color:var(--warn);text-transform:uppercase;letter-spacing:.4px;margin-bottom:7px">🟠 Próximas de vencer (' + proximos.length + ')</div>';
+    html += proximos.map(c => {
+      var dr = Math.round((new Date(c.proximo_data+'T12:00:00') - new Date()) / 86400000);
+      return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--bdr)">'
+        + '<span class="badge b-warn" style="flex-shrink:0">' + NFPA_LABELS[c.periodo] + '</span>'
+        + '<span style="font-size:13px;flex:1">' + (c.cliente_nome||'—') + '</span>'
+        + '<span style="font-size:12px;color:var(--warn);font-weight:700">Vence em ' + dr + ' dia' + (dr!==1?'s':'') + '</span>'
+        + '<a href="relatorio_nfpa25.html" target="_blank" rel="noopener" class="btn btn-outline btn-xs">Agendar</a>'
+        + '</div>';
+    }).join('');
+    html += '</div>';
+  }
+
+  alertas.innerHTML = html || '<div class="empty"><p>Sem alertas críticos</p></div>';
+}
+
+function renderNFPA25() {
+  var q = (gv('nfpa-q')||'').toLowerCase();
+  var fper = gv('nfpa-fper');
+  var fst  = gv('nfpa-fst');
+  var periodos = ['semanal','mensal','trimestral','semestral','anual'];
+  var list = DB.clientes.filter(c => c.ativo);
+  if(q) list = list.filter(c => c.nome.toLowerCase().includes(q));
+
+  // Filtro por status ou período
+  if(fper || fst) {
+    list = list.filter(cli => {
+      var pers = fper ? [fper] : periodos;
+      return pers.some(per => {
+        var st = statusPeriodo(cli.id, per);
+        if(fst === 'vencido')  return st.status === 'vencido';
+        if(fst === 'proximo')  return st.status === 'proximo';
+        if(fst === 'em_dia')   return st.status === 'em_dia';
+        if(fst === 'nunca')    return st.status === 'nunca';
+        return true;
+      });
+    });
+  }
+
+  document.getElementById('nfpa-cnt').textContent = list.length + ' clientes';
+  var body = document.getElementById('nfpa-tb');
+  if(!list.length) {
+    body.innerHTML = '<tr><td colspan="7"><div class="empty"><div class="empty-i">🔬</div><h3>Nenhum cliente encontrado</h3></div></td></tr>';
+    return;
+  }
+
+  body.innerHTML = list.map(cli => {
+    var cells = periodos.map(per => {
+      var st = statusPeriodo(cli.id, per);
+      var title = st.data ? 'Última: ' + fmtDate(st.data) + (st.dias !== null ? ' | ' + (st.dias < 0 ? 'Vencida há ' + Math.abs(st.dias) + 'd' : 'Próxima em ' + st.dias + 'd') : '') : 'Nunca realizado';
+      return '<td title="' + title + '"><span class="badge ' + st.class + '" style="font-size:10px">' + st.label + '</span></td>';
+    }).join('');
+
+    return '<tr>'
+      + '<td><div style="display:flex;align-items:center;gap:9px"><div class="av" style="background:var(--blue-bg);color:var(--blue);border-color:var(--blue-bd)">' + initials(cli.nome) + '</div><span style="font-size:13px;font-weight:600">' + cli.nome + '</span></div></td>'
+      + cells
+      + '<td><a href="relatorio_nfpa25.html" target="_blank" rel="noopener" class="btn btn-blue btn-xs">🔬 ITM</a></td>'
+      + '</tr>';
+  }).join('');
+}
+
 // ══════════════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════════════
@@ -1371,8 +1593,212 @@ loadDB();
 loadConfig();
 syncAll();
 checkSemanal();
+syncNFPA25();
 setInterval(syncAll, 25000);
+syncNFPA25();
+setInterval(syncNFPA25, 60000);
 renderDashboard();
+
+// ══════════════════════════════════════════════════════
+// NFPA 25 ITM — CONTROLE DE PERIODICIDADE
+// ══════════════════════════════════════════════════════
+var ITM_DIAS={semanal:7,mensal:30,trimestral:90,semestral:180,anual:365};
+var ITM_LABELS={semanal:'Semanal',mensal:'Mensal',trimestral:'Trimestral',semestral:'Semestral',anual:'Anual'};
+var ITM_PERIODOS=Object.keys(ITM_DIAS);
+
+// Dados ITM carregados do Supabase
+var _itmControles=[];
+var _itmRegistros=[];
+
+async function syncNFPA25(){
+  try{
+    var[ctrls,regs]=await Promise.all([
+      sbGet('itm_controles','select=*').catch(()=>[]),
+      sbGet('itm_registros','select=*&order=data.desc&limit=100').catch(()=>[]),
+    ]);
+    _itmControles=ctrls||[];
+    _itmRegistros=regs||[];
+    if(currentPage==='nfpa25')renderNFPA25();
+  }catch(e){console.warn('Sync NFPA25 falhou:',e.message);}
+}
+
+function getItmStatus(ctrl){
+  if(!ctrl||!ctrl.ultima_data)return'sem-dados';
+  var hoje=new Date();
+  var proxima=new Date(ctrl.proximo_data+'T12:00:00');
+  var diff=Math.round((proxima-hoje)/86400000);
+  if(diff<0)return'over';
+  if(diff<=Math.max(3,Math.round(ITM_DIAS[ctrl.periodo]*0.1)))return'warn';
+  return'ok';
+}
+
+function getDiasRestantes(ctrl){
+  if(!ctrl||!ctrl.ultima_data)return null;
+  var proxima=new Date(ctrl.proximo_data+'T12:00:00');
+  return Math.round((proxima-new Date())/86400000);
+}
+
+function renderNFPA25(){
+  var q=(gv('nfpa-q')).toLowerCase();
+  var fper=gv('nfpa-fper');
+  var fst=gv('nfpa-fstatus');
+
+  // ── Alertas globais ────────────────────────────────
+  var vencidas=_itmControles.filter(c=>getItmStatus(c)==='over');
+  var proximas=_itmControles.filter(c=>getItmStatus(c)==='warn');
+  var alertDiv=document.getElementById('nfpa-alerts');
+  var alertHtml='';
+  if(vencidas.length){
+    alertHtml+=`<div style="background:var(--nok-bg);border:1.5px solid var(--nok-bd);border-radius:8px;padding:11px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px">
+      <span style="font-size:20px">🚨</span>
+      <div><strong style="color:var(--nok)">${vencidas.length} inspeção(ões) VENCIDA(S)</strong>
+      <div style="font-size:12px;color:var(--tx2);margin-top:2px">${vencidas.slice(0,3).map(c=>
+        cliNome(c.cliente_id)+' — '+ITM_LABELS[c.periodo]
+      ).join(', ')}${vencidas.length>3?'…':''}</div></div>
+    </div>`;
+  }
+  if(proximas.length){
+    alertHtml+=`<div style="background:var(--warn-bg);border:1.5px solid var(--warn-bd);border-radius:8px;padding:11px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px">
+      <span style="font-size:20px">⚠️</span>
+      <div><strong style="color:var(--warn)">${proximas.length} inspeção(ões) próxima(s) do vencimento</strong>
+      <div style="font-size:12px;color:var(--tx2);margin-top:2px">${proximas.slice(0,3).map(c=>{
+        var d=getDiasRestantes(c);
+        return cliNome(c.cliente_id)+' — '+ITM_LABELS[c.periodo]+(d!==null?' ('+d+'d)':'');
+      }).join(', ')}${proximas.length>3?'…':''}</div></div>
+    </div>`;
+  }
+  if(!vencidas.length&&!proximas.length&&_itmControles.length){
+    alertHtml=`<div style="background:var(--ok-bg);border:1.5px solid var(--ok-bd);border-radius:8px;padding:11px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px">
+      <span style="font-size:20px">✅</span>
+      <strong style="color:var(--ok)">Todas as inspeções estão em dia!</strong>
+    </div>`;
+  }
+  alertDiv.innerHTML=alertHtml;
+
+  // ── Cards por cliente ──────────────────────────────
+  var cliIds=[...new Set(_itmControles.map(c=>c.cliente_id).filter(Boolean))];
+  var cardsWrap=document.getElementById('nfpa-cards');
+
+  var clisFiltrados=DB.clientes.filter(cli=>{
+    if(q&&!cli.nome.toLowerCase().includes(q))return false;
+    // Verificar se tem algum controle com o filtro aplicado
+    var ctrlsCli=_itmControles.filter(c=>c.cliente_id===cli.id);
+    if(fper&&!ctrlsCli.find(c=>c.periodo===fper))return false;
+    if(fst){var hasStatus=ctrlsCli.some(c=>getItmStatus(c)===fst);if(!hasStatus)return false;}
+    return ctrlsCli.length>0||cliIds.includes(cli.id);
+  });
+
+  // Incluir clientes sem controle se sem filtro
+  if(!q&&!fper&&!fst){
+    DB.clientes.forEach(cli=>{if(!clisFiltrados.find(c=>c.id===cli.id))clisFiltrados.push(cli);});
+  }
+
+  if(!clisFiltrados.length){
+    cardsWrap.innerHTML=`<div class="empty"><div class="empty-i">🔥</div><h3>Nenhum cliente encontrado</h3><p>Cadastre inspeções NFPA 25 pelo formulário</p></div>`;
+  } else {
+    cardsWrap.innerHTML=clisFiltrados.map(cli=>{
+      var ctrlsCli=ITM_PERIODOS.map(p=>{
+        var ctrl=_itmControles.find(c=>c.cliente_id===cli.id&&c.periodo===p);
+        return{periodo:p,ctrl};
+      });
+      var totalOver=ctrlsCli.filter(x=>x.ctrl&&getItmStatus(x.ctrl)==='over').length;
+      var totalWarn=ctrlsCli.filter(x=>x.ctrl&&getItmStatus(x.ctrl)==='warn').length;
+      var borderCol=totalOver>0?'var(--nok-bd)':totalWarn>0?'var(--warn-bd)':'var(--bdr)';
+      return`<div class="card" style="margin-bottom:13px;border-color:${borderCol}">
+        <div class="ch">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="av" style="background:var(--blue-bg);color:var(--blue);border-color:var(--blue-bd)">${initials(cli.nome)}</div>
+            <div>
+              <div style="font-weight:700;font-size:14px">${cli.nome}</div>
+              <div style="font-size:12px;color:var(--tx3)">${cli.endereco||cli.email||''}</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            ${totalOver>0?`<span class="badge b-nok">⚠️ ${totalOver} vencida${totalOver>1?'s':''}</span>`:''}
+            ${totalWarn>0?`<span class="badge b-warn">🕐 ${totalWarn} próxima${totalWarn>1?'s':''}</span>`:''}
+            <a href="relatorio_nfpa25.html" target="_blank" rel="noopener" class="btn btn-primary btn-xs">+ ITM</a>
+          </div>
+        </div>
+        <div class="cb">
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">
+            ${ctrlsCli.map(({periodo,ctrl})=>{
+              var st=getItmStatus(ctrl);
+              var dias=getDiasRestantes(ctrl);
+              var bg=st==='over'?'var(--nok-bg)':st==='warn'?'var(--warn-bg)':st==='ok'?'var(--ok-bg)':'var(--bg)';
+              var col=st==='over'?'var(--nok)':st==='warn'?'var(--warn)':st==='ok'?'var(--ok)':'var(--tx3)';
+              var ic=st==='over'?'🔴':st==='warn'?'🟡':st==='ok'?'✅':'⬜';
+              var txt='';
+              if(ctrl&&ctrl.ultima_data){
+                txt=dias!==null&&dias>=0?dias+'d':Math.abs(dias||0)+'d atrás';
+              } else {txt='Nunca';}
+              var proximaStr=ctrl&&ctrl.proximo_data?new Date(ctrl.proximo_data+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}):'—';
+              return`<div style="background:${bg};border-radius:8px;padding:9px 6px;text-align:center;border:1.5px solid ${col};opacity:${!ctrl?0.45:1}">
+                <div style="font-size:17px;margin-bottom:3px">${ic}</div>
+                <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:${col}">${ITM_LABELS[periodo]}</div>
+                ${ctrl?`<div style="font-size:11px;font-weight:700;color:${col};margin-top:2px">${txt}</div>
+                <div style="font-size:10px;color:var(--tx3)">Próx: ${proximaStr}</div>`
+                :`<div style="font-size:10px;color:var(--tx3);margin-top:2px">Sem registro</div>`}
+              </div>`;
+            }).join('')}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── Histórico ──────────────────────────────────────
+  var histFiltrado=_itmRegistros.filter(r=>{
+    if(q&&!(r.cliente_nome||'').toLowerCase().includes(q))return false;
+    if(fper&&r.periodo!==fper)return false;
+    return true;
+  });
+  document.getElementById('nfpa-hist-cnt').textContent=histFiltrado.length;
+  var tb=document.getElementById('nfpa-hist-tb');
+  if(!histFiltrado.length){
+    tb.innerHTML=`<tr><td colspan="8"><div class="empty"><div class="empty-i">📋</div><p>Nenhuma inspeção registrada</p></div></td></tr>`;
+  } else {
+    tb.innerHTML=histFiltrado.slice(0,50).map(r=>{
+      var cf=r.conformidade||0;
+      var col=cf>=80?'var(--ok)':cf>=60?'var(--warn)':'var(--nok)';
+      return`<tr>
+        <td style="white-space:nowrap;font-size:12px">${fmtDate(r.data)}</td>
+        <td style="font-size:13px;font-weight:600">${r.cliente_nome||cliNome(r.cliente_id)||'—'}</td>
+        <td><span class="badge b-blue">${ITM_LABELS[r.periodo]||r.periodo||'—'}</span></td>
+        <td style="font-size:12px">${r.tecnico_nome||tecNome(r.tecnico_id)||'—'}</td>
+        <td><span style="color:var(--ok);font-weight:700">${r.total_sim||0}</span></td>
+        <td><span style="color:${r.total_nao>0?'var(--nok)':'var(--tx3)'};font-weight:700">${r.total_nao||0}</span></td>
+        <td>
+          <div style="display:flex;align-items:center;gap:6px;min-width:80px">
+            <div style="flex:1;height:6px;background:var(--bdr);border-radius:3px;overflow:hidden">
+              <div style="height:100%;width:${cf}%;background:${col};border-radius:3px"></div>
+            </div>
+            <span style="font-size:12px;font-weight:700;color:${col}">${cf}%</span>
+          </div>
+        </td>
+        <td><div class="tda"><button class="btn btn-outline btn-xs" onclick="verITM('${r.id||''}')">Ver</button></div></td>
+      </tr>`;
+    }).join('');
+  }
+}
+
+function verITM(id){
+  var r=_itmRegistros.find(x=>x.id===id);
+  if(!r){toast('Registro não encontrado','t-err');return;}
+  var cf=r.conformidade||0;
+  alert(
+    'ITM NFPA 25 — '+ITM_LABELS[r.periodo]+
+    '\nCliente: '+(r.cliente_nome||'—')+
+    '\nTécnico: '+(r.tecnico_nome||'—')+
+    '\nData: '+fmtDate(r.data)+
+    '\n\nResultados:\n✅ SIM: '+(r.total_sim||0)+
+    '\n❌ NÃO OK: '+(r.total_nao||0)+
+    '\n— N/A: '+(r.total_na||0)+
+    '\n\nConformidade: '+cf+'%'+
+    (r.observacoes?'\n\nObservações: '+r.observacoes:'')+
+    (r.pendencias?'\n\nPendências: '+r.pendencias:'')
+  );
+}
+
 </script>
 </body>
 </html>
